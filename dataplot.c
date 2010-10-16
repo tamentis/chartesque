@@ -133,7 +133,7 @@ chq_dataplot_get_x_label_y(chq_dataplot_t *chart)
 
 
 /**
- * Render a label for the x-axis.
+ * Render a label for the x-axis, centered.
  */
 void
 chq_dataplot_render_x_label_text(chq_dataplot_t *chart, double x, char *text)
@@ -146,22 +146,9 @@ chq_dataplot_render_x_label_text(chq_dataplot_t *chart, double x, char *text)
 
 	cairo_set_font_size(chart->cr, chart->x_axis->label_fontsize);
 	cairo_move_to(chart->cr, chart->margin_left +
-			chart->y_axis->label_padding * 2.0 +
-			chart->y_axis->label_max_width + x -
+			chq_axis_vertical_get_width(chart->y_axis) + x -
 			extents.width / 2.0, x_label_y);
 	cairo_text_path(chart->cr, text);
-}
-
-
-/**
- * Returns the size of the y-axis.
- */
-double
-chq_dataplot_get_y_axis_height(chq_dataplot_t *chart)
-{
-	return chart->height - chart->margin_top - chart->margin_bottom -
-		chart->x_axis->label_padding * 2 -
-		chart->x_axis->label_max_height;
 }
 
 
@@ -207,166 +194,6 @@ chq_dataplot_render_x_axis_labels(chq_dataplot_t *chart)
 
 
 /**
- * Determine the width/height of a double value rendered to text using the
- * provided parameters. The values are set directly on the *width and *height
- * pointers, the rendered text value is returned and needs to be free'd. Make
- * sure you pass copy = 0 if you don't need the output or you'll be creating
- * a memory leak.
- *
- * I have the feeling this function should really be two, but let's see how
- * much we can fuck up the whole library without refactoring.
- */
-char *
-chq_dataplot_prerender_value(chq_dataplot_t *chart, double value, 
-		const char *family, cairo_font_slant_t slant,
-		cairo_font_weight_t weight, double size, double *width,
-		double *height, int copy)
-{
-	char lbuffer[MAX_LABEL_SIZE];
-
-	snprintf(lbuffer, MAX_LABEL_SIZE, "%.1f", value);
-
-	if (width != NULL && height != NULL) {
-		chq_dataplot_get_text_size(chart->cr, family, slant, weight,
-				size, lbuffer, width, height);
-	}
-
-	if (copy) {
-		return strdup(lbuffer);
-	} else {
-		return NULL;
-	}
-}
-
-
-void
-chq_dataplot_prerender_y_axis_ticks(chq_dataplot_t *chart)
-{
-	double value;
-	unsigned int i;
-	char *rendered;
-	chq_axis_t *axis = chart->y_axis;
-
-	/* This is the size of the y-axis line */
-	double height = chq_dataplot_get_y_axis_height(chart);
-	chq_axis_set_size(axis, height);
-
-	for (i = 0; i < axis->ticks_count; i++) {
-		value = axis->limit_min + (double)i * axis->ticks_value_spacing;
-		rendered = chq_dataplot_prerender_value(chart, value,
-				axis->label_fontfamily,
-				CAIRO_FONT_SLANT_NORMAL,
-				CAIRO_FONT_WEIGHT_BOLD,
-				axis->label_fontsize, NULL, NULL, 1);
-
-		axis->ticks_positions[i] =
-			chq_axis_convert_to_scale(axis, value);
-		axis->ticks_labels[i] = rendered;
-	}
-}
-
-
-void
-chq_dataplot_prerender_x_axis_ticks(chq_dataplot_t *chart)
-{
-	double value;
-	unsigned int i;
-	char *rendered;
-	chq_axis_t *axis = chart->x_axis;
-
-	/* Set the to-be-rendered size of the axis */
-	double width = chart->width - chart->margin_left - chart->margin_right;
-	chq_axis_set_size(axis, width);
-
-	for (i = 0; i < axis->ticks_count; i++) {
-		value = axis->limit_min +
-			(double)i * axis->ticks_value_spacing;
-		rendered = chq_dataplot_prerender_value(chart, value,
-				axis->label_fontfamily,
-				CAIRO_FONT_SLANT_NORMAL,
-				CAIRO_FONT_WEIGHT_BOLD,
-				axis->label_fontsize, NULL, NULL, 1);
-
-		axis->ticks_positions[i] = 
-			chq_axis_convert_to_scale(axis, value);
-		axis->ticks_labels[i] = rendered;
-	}
-}
-
-
-/**
- * Determine the width/height of the x-axis labels.
- * @private
- */
-static void
-chq_dataplot_calculate_x_axis_label_size(chq_dataplot_t *chart)
-{
-	unsigned int i;
-	unsigned int sample_max = 11;
-	double width, height, max_label_width = 0.0, max_label_height = 0.0;
-	double spacing;
-
-	spacing = (chart->x_axis->limit_max - chart->x_axis->limit_min) /
-		(sample_max - 1);
-
-	double value;
-	for (i = 0; i < sample_max; i++) {
-		value = chart->x_axis->limit_min + (double)i * spacing;
-		chq_dataplot_prerender_value(chart, value,
-				chart->x_axis->label_fontfamily,
-				CAIRO_FONT_SLANT_NORMAL,
-				CAIRO_FONT_WEIGHT_BOLD,
-				chart->x_axis->label_fontsize, &width, &height, 0);
-
-		if (width > max_label_width)
-			max_label_width = width;
-		if (height > max_label_height)
-			max_label_height = height;
-	}
-
-	/* Define label max label sizes */
-	chart->x_axis->label_max_width = max_label_width;
-	chart->x_axis->label_max_height = max_label_height;
-}
-
-
-/**
- * Determine the width/height of the x-axis labels.
- * @private
- */
-static void
-chq_dataplot_calculate_y_axis_label_size(chq_dataplot_t *chart)
-{
-	unsigned int i;
-	unsigned int sample_max = 11;
-	double width, height, max_label_width = 0.0, max_label_height = 0.0;
-	double spacing;
-
-	spacing = (chart->y_axis->limit_max - chart->y_axis->limit_min) /
-		(sample_max - 1);
-
-	double value;
-	for (i = 0; i < sample_max; i++) {
-		value = chart->y_axis->limit_min + (double)i * spacing;
-		chq_dataplot_prerender_value(chart, value,
-				chart->y_axis->label_fontfamily,
-				CAIRO_FONT_SLANT_NORMAL,
-				CAIRO_FONT_WEIGHT_BOLD,
-				chart->y_axis->label_fontsize, &width, &height, 0);
-
-		if (width > max_label_width)
-			max_label_width = width;
-		if (height > max_label_height)
-			max_label_height = height;
-	}
-
-	/* Define label max label sizes */
-	chart->y_axis->label_max_width = max_label_width;
-	chart->y_axis->label_max_height = max_label_height;
-}
-
-
-/**
  * Routine drawing the axes.
  */
 void
@@ -379,12 +206,20 @@ chq_dataplot_render_axes(chq_dataplot_t *chart)
 	 * to get a proper size for the axes. The sizing is done on a sample
 	 * of 11.
 	 */
-	chq_dataplot_calculate_x_axis_label_size(chart);
-	chq_dataplot_calculate_y_axis_label_size(chart);
+	chq_axis_calculate_label_size(chart->x_axis, chart->cr);
+	chq_axis_calculate_label_size(chart->y_axis, chart->cr);
+
+	/* Set the estimated size of the axes */
+	chq_axis_set_size(chart->y_axis, chart->height - chart->margin_top -
+			chart->margin_bottom -
+			chart->x_axis->label_padding * 2 -
+			chart->x_axis->label_max_height);
+	chq_axis_set_size(chart->x_axis, chart->width - chart->margin_left -
+			chart->margin_right);
 
 	/* Generate the ticks (positions and labels) */
-	chq_dataplot_prerender_y_axis_ticks(chart);
-	chq_dataplot_prerender_x_axis_ticks(chart);
+	chq_axis_prerender_ticks(chart->x_axis, chart->cr);
+	chq_axis_prerender_ticks(chart->y_axis, chart->cr);
 
 	/* Select axes color */
 	cairo_set_source_rgb(chart->cr, 0.2, 0.2, 0.2);

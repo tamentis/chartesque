@@ -37,6 +37,8 @@ chq_axis_new()
 	axis->label_fontfamily = strdup("Sans");
 	axis->label_fontsize = 10.0;
 	axis->label_padding = 4.0;
+	axis->label_slant = CAIRO_FONT_SLANT_NORMAL;
+	axis->label_weight = CAIRO_FONT_WEIGHT_BOLD;
 
 	axis->ticks_count = 0;
 	axis->ticks_positions = NULL;
@@ -195,3 +197,84 @@ chq_axis_horizontal_get_height(chq_axis_t *axis)
 	return axis->label_max_height + axis->label_padding * 2.0;
 }
 
+
+/**
+ * Determine the width/height of a double value rendered to text using the
+ * provided parameters. The values are set directly on the *width and *height
+ * pointers, the rendered text value is returned and needs to be free'd. Make
+ * sure you pass copy = 0 if you don't need the output or you'll be creating
+ * a memory leak.
+ *
+ * I have the feeling this function should really be two, but let's see how
+ * much we can fuck up the whole library without refactoring.
+ */
+char *
+chq_axis_prerender_value(chq_axis_t *axis, cairo_t *cr, double value,
+		double *width, double *height, int copy)
+{
+	char lbuffer[MAX_LABEL_SIZE];
+
+	snprintf(lbuffer, MAX_LABEL_SIZE, "%.1f", value);
+
+	if (width != NULL && height != NULL) {
+		chq_dataplot_get_text_size(cr, axis->label_fontfamily,
+				axis->label_slant, axis->label_weight,
+				axis->label_fontsize, lbuffer, width, height);
+	}
+
+	if (copy) {
+		return strdup(lbuffer);
+	} else {
+		return NULL;
+	}
+}
+
+
+/**
+ * Determine the width/height of the x-axis labels by sampling.
+ */
+void
+chq_axis_calculate_label_size(chq_axis_t *axis, cairo_t *cr)
+{
+	unsigned int i;
+	unsigned int sample_max = 11;
+	double width, height, max_label_width = 0.0, max_label_height = 0.0;
+	double spacing;
+	double value;
+
+	spacing = chq_axis_get_spread(axis) / (sample_max - 1);
+
+	for (i = 0; i < sample_max; i++) {
+		value = axis->limit_min + (double)i * spacing;
+		chq_axis_prerender_value(axis, cr, value, &width, &height, 0);
+
+		if (width > max_label_width)
+			max_label_width = width;
+		if (height > max_label_height)
+			max_label_height = height;
+	}
+
+	/* Define label max label sizes */
+	axis->label_max_width = max_label_width;
+	axis->label_max_height = max_label_height;
+}
+
+
+void
+chq_axis_prerender_ticks(chq_axis_t *axis, cairo_t *cr)
+{
+	double value;
+	unsigned int i;
+	char *rendered;
+
+	for (i = 0; i < axis->ticks_count; i++) {
+		value = axis->limit_min +
+			(double)i * axis->ticks_value_spacing;
+		rendered = chq_axis_prerender_value(axis, cr, value, NULL,
+				NULL, 1);
+
+		axis->ticks_positions[i] = chq_axis_convert_to_scale(axis,
+				value);
+		axis->ticks_labels[i] = rendered;
+	}
+}

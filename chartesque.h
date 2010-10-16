@@ -29,19 +29,24 @@ enum orientation {
 };
 
 typedef struct _chq_axis_t {
-	char		*label_fontfamily;
-	double		 label_fontsize;
-	double		 label_padding;
-	double		 label_max_width;
-	double		 label_max_height;
-	double		 limit_min;
-	double		 limit_max;
-	unsigned int	 ticks_count;
-	double		*ticks_positions;
-	char	       **ticks_labels;
-	double		 ticks_value_spacing;
-	double		 size;
-	enum orientation orientation;
+	enum orientation	 orientation;
+	double			 size;
+	double			 limit_min;
+	double			 limit_max;
+	/* label style */
+	char			*label_fontfamily;
+	double			 label_fontsize;
+	double			 label_padding;
+	cairo_font_slant_t	 label_slant;
+	cairo_font_weight_t	 label_weight;
+	/* label misc */
+	double			 label_max_width;
+	double			 label_max_height;
+	/* ticks */
+	unsigned int		 ticks_count;
+	double			*ticks_positions;
+	char			**ticks_labels;
+	double			 ticks_value_spacing;
 } chq_axis_t;
 
 typedef struct _chq_dataplot_t {
@@ -76,6 +81,10 @@ double		 chq_axis_convert_to_scale(chq_axis_t *, double);
 void		 chq_axis_select_label_fontfamily(chq_axis_t *, cairo_t *);
 double		 chq_axis_vertical_get_width(chq_axis_t *);
 double		 chq_axis_horizontal_get_height(chq_axis_t *);
+char 		*chq_axis_prerender_value(chq_axis_t *, cairo_t *, double, 
+			double *, double *, int);
+void		 chq_axis_calculate_label_size(chq_axis_t *, cairo_t *);
+void		 chq_axis_prerender_ticks(chq_axis_t *, cairo_t *);
 
 /* dataplot.c */
 chq_dataplot_t 	*chq_dataplot_new(void);
@@ -88,19 +97,11 @@ void		 chq_dataplot_render_y_label_text(chq_dataplot_t *, double,
 double		 chq_dataplot_get_x_label_y(chq_dataplot_t *);
 void		 chq_dataplot_render_x_label_text(chq_dataplot_t *, double, 
 			char *);
-double		 chq_dataplot_get_y_axis_height(chq_dataplot_t *);
 void		 chq_dataplot_render_y_label_value(chq_dataplot_t *, double);
 void		 chq_dataplot_render_y_axis_labels(chq_dataplot_t *);
 void		 chq_dataplot_render_x_axis_labels(chq_dataplot_t *);
-char 		*chq_dataplot_prerender_value(chq_dataplot_t *, double, 
-			const char *, cairo_font_slant_t, 
-			cairo_font_weight_t, double, double *, double *, 
-			int);
-void		 chq_dataplot_prerender_y_axis_ticks(chq_dataplot_t *);
-void		 chq_dataplot_prerender_x_axis_ticks(chq_dataplot_t *);
 void		 chq_dataplot_render_axes(chq_dataplot_t *);
 void		 chq_dataplot_render(chq_dataplot_t *);
 void		 chq_dataplot_set_width(chq_dataplot_t *, unsigned int);
 void		 chq_dataplot_set_height(chq_dataplot_t *, unsigned int);
 void		 chq_dataplot_set_output_file(chq_dataplot_t *, char *);
-
