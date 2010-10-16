@@ -22,5 +22,4 @@ All the code is under ISC license (BSD/MIT compatible).
 
 TODO
 ====
- - move dataplot out of chartesque.
- - create chrtq_axis_t
+ - create chq_axis_t
