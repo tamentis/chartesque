@@ -63,6 +63,10 @@ typedef struct _chq_dataplot_t {
 	double		 margin_right;
 	double		 margin_bottom;
 	double		 margin_left;
+	/* data */
+	size_t		 data_len;
+	double		*data_x;
+	double		*data_y;
 } chq_dataplot_t;
 
 

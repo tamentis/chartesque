@@ -19,10 +19,16 @@
 int
 main (int argc, char *argv[])
 {
+	size_t data_len = 11;
+	double data_x[] = { 250,  350,  450,  550, 650,  750,  850,   950,  1050,  1150, 1250 };
+	double data_y[] = { 10.1, 20.2, 10.1, 35.1, 40.2, 45.3, 30.35, 20.4, 10.35, 5.3,  1.0 };
+
 	chq_dataplot_t *chart = chq_dataplot_new();
 	chq_dataplot_set_width(chart, 800);
 	chq_dataplot_set_height(chart, 200);
 	chq_dataplot_set_output_file(chart, "stuff.png");
+
+	chq_dataplot_set_data(chart, data_x, data_y, data_len);
 
 	chq_axis_set_limit(chart->x_axis, 200, 5000);
 	chq_axis_set_limit(chart->y_axis, 1, 50);

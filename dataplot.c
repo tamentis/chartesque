@@ -237,12 +237,47 @@ chq_dataplot_render_axes(chq_dataplot_t *chart)
 			chart->height - chart->margin_bottom - x_axis_height);
 	cairo_stroke(chart->cr);
 
+	cairo_set_source_rgb(chart->cr, 0, 0, 0);
+
 	chq_dataplot_render_y_axis_labels(chart);
 	chq_dataplot_render_x_axis_labels(chart);
 
-	cairo_set_source_rgb(chart->cr, 0, 0, 0);
 	cairo_fill(chart->cr);
 	cairo_stroke(chart->cr);
+}
+
+
+void
+chq_dataplot_render_plots(chq_dataplot_t *chart)
+{
+	size_t i;
+	double x_axis_height = chq_axis_horizontal_get_height(chart->x_axis);
+	double y_axis_width = chq_axis_vertical_get_width(chart->y_axis);
+	double left = chart->margin_left + y_axis_width;
+	double top = chart->margin_top;
+	double x, y;
+
+	cairo_save(chart->cr);
+
+	cairo_new_path(chart->cr);
+	x = chq_axis_convert_to_scale(chart->x_axis, chart->x_axis->limit_min);
+	y = chq_axis_convert_to_scale(chart->y_axis, chart->y_axis->limit_min);
+	cairo_move_to(chart->cr, left + x, top + y);
+	for (i = 0; i < chart->data_len; i++) {
+		x = chq_axis_convert_to_scale(chart->x_axis, chart->data_x[i]);
+		y = chq_axis_convert_to_scale(chart->y_axis, chart->data_y[i]);
+		printf("x: %f -> %f\n", chart->data_x[i], x);
+		cairo_line_to(chart->cr, left + x, top + y);
+	}
+
+	cairo_set_source_rgb(chart->cr, 0.4, 0.6, 1.0);
+	cairo_fill_preserve(chart->cr);
+
+	cairo_set_source_rgb(chart->cr, 0.2, 0.4, 0.7);
+	cairo_set_line_width(chart->cr, 2);
+	cairo_stroke(chart->cr);
+
+	cairo_restore(chart->cr);
 }
 
 
@@ -253,19 +288,15 @@ void
 chq_dataplot_render(chq_dataplot_t *chart)
 {
 	FILE *fp;
-	/*
-	double data_x[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
-	double data_y[] = { 0.1, 0.2, 0.1, 0.1, 0.2, 0.3, 0.35, 0.4, 0.35, 0.3, 0.2 };
-	*/
 
 	chart->surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
 			chart->width, chart->height);
 	chart->cr = cairo_create(chart->surface);
 
-	fp = fopen(chart->output_filename, "w");
-
 	chq_dataplot_render_axes(chart);
+	chq_dataplot_render_plots(chart);
 
+	fp = fopen(chart->output_filename, "w");
 	cairo_surface_write_to_png_stream(chart->surface, stdio_write, fp);
 	cairo_destroy(chart->cr);
 	cairo_surface_destroy(chart->surface);
@@ -301,5 +332,18 @@ chq_dataplot_set_output_file(chq_dataplot_t *chart, char *filename)
 {
 	free(chart->output_filename);
 	chart->output_filename = strdup(filename);
+}
+
+
+/**
+ * Assign the data arrays.
+ */
+void
+chq_dataplot_set_data(chq_dataplot_t *chart, double *data_x, double *data_y,
+		size_t data_len)
+{
+	chart->data_len = data_len;
+	chart->data_x = data_x;
+	chart->data_y = data_y;
 }
 

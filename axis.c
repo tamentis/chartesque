@@ -278,3 +278,4 @@ chq_axis_prerender_ticks(chq_axis_t *axis, cairo_t *cr)
 		axis->ticks_labels[i] = rendered;
 	}
 }
+
