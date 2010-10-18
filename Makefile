@@ -1,15 +1,19 @@
-MYCFLAGS= $(shell pkg-config --cflags cairo libpng) -Wall -g -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs -fno-strict-aliasing
-LDLIBS	= $(shell pkg-config --libs cairo libpng) -g
+MYCFLAGS= $(shell pkg-config --cflags cairo libpng) -fPIC -Wall -g -Wpointer-arith -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs -fno-strict-aliasing
+LDLIBS	= $(shell pkg-config --libs cairo libpng) -g -fPIC
 
 PROGRAM = chartesque
-OBJECTS = chartesque.o strlcpy.o dataplot.o axis.o
+OBJECTS = strlcpy.o dataplot.o axis.o
+DEMO    = chartesque.o
 
 all: $(PROGRAM)
 
 %.o:%.c
 	$(CC) $(CFLAGS) $(MYCFLAGS) -c $^
 
-chartesque: $(OBJECTS)
+libchartesque.so: $(OBJECTS)
+	gcc -shared $(OBJECTS) $(LDLIBS) -o chartesque.so
+
+chartesque: $(DEMO) $(OBJECTS)
 
 clean:
 	rm -f $(PROGRAM) $(OBJECTS)

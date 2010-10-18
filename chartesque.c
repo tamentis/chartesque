@@ -24,13 +24,13 @@ main (int argc, char *argv[])
 	double data_y[] = { 10.1, 20.2, 10.1, 35.1, 40.2, 45.3, 30.35, 20.4, 10.35, 5.3,  1.0 };
 
 	chq_dataplot_t *chart = chq_dataplot_new();
-	chq_dataplot_set_width(chart, 800);
-	chq_dataplot_set_height(chart, 200);
+	chq_dataplot_set_width(chart, 640);
+	chq_dataplot_set_height(chart, 280);
 	chq_dataplot_set_output_file(chart, "stuff.png");
 
 	chq_dataplot_set_data(chart, data_x, data_y, data_len);
 
-	chq_axis_set_limit(chart->x_axis, 200, 5000);
+	chq_axis_set_limit(chart->x_axis, 200, 2000);
 	chq_axis_set_limit(chart->y_axis, 1, 50);
 
 	chq_dataplot_render(chart);
